@@ -1,3 +1,5 @@
+import random
+from random import randrange
 from this import s
 import math
 from math import sin
@@ -124,14 +126,27 @@ class pianocorder_frame(Structure):
         ("sync", c_byte, 8),
         # bit number 127
     ]
-    def __init__(self):
+    def __init__(self, init_random:bool = False):
         # All note words are low active
         memset(byref(self), 0xFF, sizeof(self))
 
         # sync word has a different value
         self.sync = 0b1011_1111
 
-    #def random_notes(self, random_min:int, random_max: int):
+        self.note_fields = [
+            name for name, *_ in pianocorder_frame._fields_
+            if name.startswith("note_")
+        ]
+
+        if not init_random:
+            return
+
+        num_played_notes = randrange(1, 10)
+        for i in range(num_played_notes):
+            random_note = random.choice(self.note_fields)
+            setattr(self, random_note, 0)
+
+
 
 
 class manchester_encoder():
@@ -228,10 +243,11 @@ class pianocorder_wav(wav_writer) :
                 case manchester_state.LOW_HIGH:
                     wav.write_data(bytes(wav.low_high))
 
-silent_frame = pianocorder_frame()
+
 encoder = manchester_encoder()
-encoder.encode_append(silent_frame)
-encoder.encode_append(silent_frame)
+for i in range(100):
+    frame = pianocorder_frame(init_random=True)
+    encoder.encode_append(frame)
 
 encoder.make_loopable()
 
