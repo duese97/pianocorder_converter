@@ -144,9 +144,13 @@ class pianocorder_frame(Structure):
         num_played_notes = randrange(1, 10)
         for i in range(num_played_notes):
             random_note = random.choice(self.note_fields)
-            setattr(self, random_note, 0)
+            self.set_member(random_note)
 
+    def set_member(self, member:str):
+        setattr(self, member, 0)
 
+    def reset_member(self, member:str):
+        setattr(self, member, 1)
 
 
 class manchester_encoder():
@@ -198,7 +202,8 @@ class manchester_encoder():
             if sanity_count > 3:
                 raise ValueError("Unable to loop selected data")
 
-class pianocorder_wav(wav_writer) :
+class pianocorder_wav(wav_writer):
+    """ Generates an audio file for the pianocorder tape """
     FREQ_NO_TRANSITION_HZ = 2250
     FREQ_TRANSITION_HZ = 4500
 
@@ -222,43 +227,41 @@ class pianocorder_wav(wav_writer) :
         self.low_high =  self._create_tone_lookup(samples = self.SAMPLES_PER_STATE, freq=-self.FREQ_FACTOR_TRANSITION)
 
 
-    def _create_tone_lookup(self, samples: int, freq: float = 1) -> Array[c_float]:
+    def _create_tone_lookup(self, samples: int, freq: float = 1) -> bytes:
         lookup_table : list[float] = []
 
         for sample in range(samples):
             x = (float(sample) / samples) * math.pi
             lookup_table.append(sin(freq * x))
 
-        return (c_float * samples)(*lookup_table)
+        cfloat_arr = (c_float * samples)(*lookup_table)
+        return bytes(cfloat_arr)
 
     def write_manchester_data(self, manchester:list[manchester_state]):
         for m in manchester:
             match m:
                 case manchester_state.HIGH:
-                    wav.write_data(bytes(wav.high))
+                    wav.write_data(wav.high)
                 case manchester_state.LOW:
-                    wav.write_data(bytes(wav.low))
+                    wav.write_data(wav.low)
                 case manchester_state.HIGH_LOW:
-                    wav.write_data(bytes(wav.high_low))
+                    wav.write_data(wav.high_low)
                 case manchester_state.LOW_HIGH:
-                    wav.write_data(bytes(wav.low_high))
+                    wav.write_data(wav.low_high)
+                case _:
+                    raise ValueError("Unknown manchester state")
 
 
 encoder = manchester_encoder()
-for i in range(100):
-    frame = pianocorder_frame(init_random=True)
-    encoder.encode_append(frame)
+frame = pianocorder_frame()
+frame.set_member("note_5")
+
+encoder.encode_append(frame)
 
 encoder.make_loopable()
 
 
-#encoder.encode_append(silent_frame)
-
 wav = pianocorder_wav()
 
 with wav:
-    #wav.write_manchester_data([manchester_state.LOW_HIGH, manchester_state.LOW])
-    #wav.write_manchester_data([manchester_state.HIGH_LOW, manchester_state.HIGH])
-    #wav.write_data(bytes(wav.high_low))
-    #wav.write_data(bytes(wav.high))
     wav.write_manchester_data(encoder.manchester_states)
