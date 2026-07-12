@@ -25,7 +25,7 @@ class pianocorder_frame(Structure):
 
         ("none_2", c_byte, 8),
 
-        ("note_5", c_byte, 1),
+        ("note_5", c_byte, 1), # first playable, lowest note: c# (5th note from the left start)
         ("note_6", c_byte, 1),
         ("note_7", c_byte, 1),
         ("note_8", c_byte, 1),
@@ -119,7 +119,7 @@ class pianocorder_frame(Structure):
         ("note_81", c_byte, 1),
         ("note_82", c_byte, 1),
         ("note_83", c_byte, 1),
-        ("note_84", c_byte, 1),
+        ("note_84", c_byte, 1), # highest possible note
 
         ("none_5", c_byte, 8),
 
@@ -127,8 +127,6 @@ class pianocorder_frame(Structure):
         # bit number 127
     ]
     def __init__(self, init_random:bool = False):
-        # All note words are low active
-        memset(byref(self), 0xFF, sizeof(self))
 
         # sync word has a different value
         self.sync = 0b1011_1111
@@ -146,11 +144,11 @@ class pianocorder_frame(Structure):
             random_note = random.choice(self.note_fields)
             self.set_member(random_note)
 
-    def set_member(self, member:str):
-        setattr(self, member, 0)
-
-    def reset_member(self, member:str):
+    def set_member(self, member:str): # set member as active
         setattr(self, member, 1)
+
+    def reset_member(self, member:str): # set member as inactive
+        setattr(self, member, 0)
 
 
 class manchester_encoder():
@@ -254,7 +252,8 @@ class pianocorder_wav(wav_writer):
 
 encoder = manchester_encoder()
 frame = pianocorder_frame()
-frame.set_member("note_5")
+#frame.set_member("note_84")
+#frame.set_member("soft_pedal")
 
 encoder.encode_append(frame)
 
