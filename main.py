@@ -4,8 +4,7 @@ from midi_pianocorder_conv import midi_converter
 
 mc = midi_converter(r"/home/daniel/Downloads/badnerlied.mid")
 mc.find_most_used_channel()
-mc.collect_channel()
-mc.build_frames()
+mc.convert()
 
 encoder = manchester_encoder()
 for frame in mc.frames:

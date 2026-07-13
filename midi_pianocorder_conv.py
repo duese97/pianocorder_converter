@@ -19,26 +19,38 @@ class midi_converter:
         self.midifile = MidiFile(midi_path_str)
         self.target_channel = target_channel
 
-    def find_most_used_channel(self):
-        note_count = Counter()
+        print(f"Ticks per beat {self.midifile.ticks_per_beat}")
 
-        for track in self.midifile.tracks:
+        self.note_count = Counter()
+
+        channels = []
+        for track_num, track in enumerate(self.midifile.tracks):
+            channels.append({msg.channel for msg in track if hasattr(msg, "channel")})
+
             for msg in track:
                 if msg.type == "note_on" and msg.velocity > 0:
-                    note_count[msg.channel] += 1
+                    self.note_count[msg.channel] += 1
 
-        for ch, count in sorted(note_count.items()):
-            print(f"Channel {ch}: {count} notes")
+        for track_num, track in enumerate(self.midifile.tracks):
+            for ch in channels[track_num]:
+                print(
+                    f"Track num {track_num}, name {track.name}, channel {ch}, total notes used {self.note_count[ch]}"
+                )
+
+    def find_most_used_channel(self):
 
         # get array with most common notes (key-values)
-        tmp_channel = note_count.most_common()
+        tmp_channel = self.note_count.most_common()
 
         # most common key-value -> most common key (channel)
         tmp_channel = tmp_channel[0][0]
 
         self.target_channel = tmp_channel
 
-    def collect_channel(self):
+    def _collect_channel(self):
+
+        print(f"Collecting target channel {self.target_channel}")
+
         # reset notes
         self.note_states: list[note_state] = []
 
@@ -74,7 +86,7 @@ class midi_converter:
 
             self.note_states.append(note_state(current_time, converted_note, press))
 
-    def build_frames(self):
+    def _build_frames(self):
         frame_boundary = self.note_states[0].abs_time + FRAME_PERIOD_S
 
         self.frames: list[pianocorder_frame] = []
@@ -108,3 +120,7 @@ class midi_converter:
         # Make sure we end with silence
         new_frame = pianocorder_frame()  # create empty frame
         self.frames.append(new_frame)
+
+    def convert(self):
+        self._collect_channel()
+        self._build_frames()
