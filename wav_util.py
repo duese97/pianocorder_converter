@@ -1,3 +1,4 @@
+from io import BytesIO
 from ctypes import LittleEndianStructure, c_byte, c_int32, c_int16, sizeof
 
 
@@ -65,7 +66,7 @@ class wav_writer:
         )
 
         self.output_path = output_path
-        self.sound_data = bytes()
+        self.sound_data = BytesIO()
 
     def __enter__(self):
         self.fd = open(self.output_path, "wb+")
@@ -73,14 +74,16 @@ class wav_writer:
 
     def __exit__(self, exception_type, exception_value, exception_traceback):
 
-        self.wav_header.DataSize = len(self.sound_data)
+        buf = self.sound_data.getvalue()
+
+        self.wav_header.DataSize = len(buf)
 
         self.wav_header.FileSize = sizeof(wav_header) - 8 + self.wav_header.DataSize
 
         self.fd.write(bytes(self.wav_header))
-        self.fd.write(self.sound_data)
+        self.fd.write(buf)
 
         self.fd.close()
 
     def write_data(self, sample_data: bytes):
-        self.sound_data += sample_data
+        self.sound_data.write(sample_data)

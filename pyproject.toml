@@ -1,0 +1,8 @@
+[project]
+name = "pianocorder_converter"
+version = "0.0.1"
+description = ""
+requires-python = ">=3.12"
+dependencies = [
+    "mido>=1.3.3",
+]

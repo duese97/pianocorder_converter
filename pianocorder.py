@@ -6,11 +6,15 @@ from ctypes import (
     Structure,
     c_byte,
     c_float,
+    sizeof,
 )
 from enum import Enum
 import os
 
 from wav_util import wav_writer
+
+FREQ_NO_TRANSITION_HZ = 2250
+FREQ_TRANSITION_HZ = 4500
 
 
 class manchester_state(Enum):
@@ -157,11 +161,12 @@ class pianocorder_frame(Structure):
             random_note = random.choice(self.note_fields)
             self.set_member(random_note)
 
-    def set_member(self, member: str):  # set member as active
-        setattr(self, member, 1)
+    def set_member(self, member: str, pressed: bool = True):  # press the note or not
+        setattr(self, member, pressed)
 
-    def reset_member(self, member: str):  # set member as inactive
-        setattr(self, member, 0)
+
+# Period in seconds a frame takes
+FRAME_PERIOD_S = sizeof(pianocorder_frame) * 8 / FREQ_TRANSITION_HZ
 
 
 class manchester_encoder:
@@ -225,9 +230,6 @@ class manchester_encoder:
 class pianocorder_wav(wav_writer):
     """Generates an audio file for the pianocorder tape"""
 
-    FREQ_NO_TRANSITION_HZ = 2250
-    FREQ_TRANSITION_HZ = 4500
-
     FREQ_FACTOR_NO_TRANSITION = 1
     FREQ_FACTOR_TRANSITION = int(FREQ_TRANSITION_HZ / FREQ_NO_TRANSITION_HZ)
 
@@ -272,28 +274,12 @@ class pianocorder_wav(wav_writer):
         for m in manchester:
             match m:
                 case manchester_state.HIGH:
-                    wav.write_data(wav.high)
+                    self.write_data(self.high)
                 case manchester_state.LOW:
-                    wav.write_data(wav.low)
+                    self.write_data(self.low)
                 case manchester_state.HIGH_LOW:
-                    wav.write_data(wav.high_low)
+                    self.write_data(self.high_low)
                 case manchester_state.LOW_HIGH:
-                    wav.write_data(wav.low_high)
+                    self.write_data(self.low_high)
                 case _:
                     raise ValueError("Unknown manchester state")
-
-
-encoder = manchester_encoder()
-frame = pianocorder_frame()
-# frame.set_member("note_84")
-# frame.set_member("soft_pedal")
-
-encoder.encode_append(frame)
-
-encoder.make_loopable()
-
-
-wav = pianocorder_wav()
-
-with wav:
-    wav.write_manchester_data(encoder.manchester_states)
