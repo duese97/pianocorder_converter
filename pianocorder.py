@@ -24,6 +24,120 @@ class manchester_state(Enum):
     HIGH = 0b11
 
 
+class SuperScanCommand(Enum):
+    ### GENERAL ###
+    NO_OPERATION = 0x00
+    # Causes system to wait one time period before continuing.
+    # The time period duration is determined by SET_DISPLAY_RATE.
+
+    RESET_DISPLAY = 0x02
+    # Completely resets the display system. The graphics memory is not affected.
+
+    SCROLL_DOWN = 0x04
+    # Scrolls the display down one line in single mode or seven lines in
+    # multiple mode. The scroll rate is determined by SET_DISPLAY_RATE.
+
+    NORMAL_DISPLAY = 0x06
+    # Makes the whole display non-highlighted (not inverted).
+
+    TOGGLE_INVERSE = 0x09
+    # Toggles highlighting (inverse) mode.
+
+    VENETIAN_BLIND_RIGHT = 0x0A
+    # Activates the Venetian blind effect from the right.
+    # Shifts once in single mode or six times in multiple mode.
+
+    DELAY_2_SECONDS = 0x0C
+    # Produces a two-second delay.
+
+    VENETIAN_BLIND_LEFT = 0x0D
+    # Activates the Venetian blind effect from the left.
+    # Shifts once in single mode or six times in multiple mode.
+
+    SET_MULTIPLE_MODE = 0x0E
+    # Sets the scroll and Venetian blind effects to multiple mode.
+
+    INVERT_DISPLAY = 0x0F
+    # Makes the whole display highlighted (inverted).
+
+    SET_SINGLE_MODE = 0x10
+    # Sets the scroll and Venetian blind effects to single mode.
+
+    CLEAR_SCREEN = 0x12
+    # Clears the screen, makes Venetian blind and scrolling features visible,
+    # sets the text mode to normal (not inverted), turns off blinking,
+    # and positions the cursor at the leftmost position on the display.
+
+    INIT_VENETIAN_BLIND = 0x13
+    # Initializes the Venetian blind feature in an invisible state.
+    # VENETIAN_BLIND_RIGHT or VENETIAN_BLIND_LEFT will cause the text
+    # to Venetian blind into place.
+
+    INIT_SCROLL = 0x14
+    # Initializes the scroll feature in an invisible state.
+    # SCROLL_UP or SCROLL_DOWN will cause the screen to scroll into place.
+
+    SCROLL_UP = 0x15
+    # Scrolls the display up one line in single mode or seven lines
+    # in multiple mode.
+
+    COMPLETE_EFFECT = 0x16
+    # Completes any partially-finished scrolling or Venetian blind effect,
+    # making it fully visible and centered on the display.
+
+    TOGGLE_BLINK = 0x17
+    # Toggles the text blinking attribute on and off.
+
+    SET_CURSOR_POSITION = 0x18
+    # Expects one ASCII argument ('0'-'9' or 'A'-'I') specifying
+    # the cursor position (0-18).
+
+    SET_DISPLAY_RATE = 0x19
+    # Expects one ASCII argument ('1'-'9' or 'A'-'Z') specifying
+    # the display timing. Delay increments are 1/40 second.
+
+    ### GRAPHICS MODE ###
+
+    INSERT_GRAPHICS_CHARACTER = 0x07
+    # Expects one ASCII argument (0-127) specifying the custom graphics
+    # character to insert at the current text position.
+
+    EDIT_GRAPHICS_CHARACTER = 0x0B
+    # Expects one ASCII argument (0-127) specifying the custom graphics
+    # character to edit. Enters graphics edit mode with the cursor
+    # initially positioned at the upper-left corner.
+
+    GRAPHICS_CURSOR_UP = 0x44
+    # Moves the graphics edit cursor up one row.
+
+    EXIT_GRAPHICS_MODE = 0x45
+    # Stores all changes and exits graphics edit mode.
+
+    GRAPHICS_CURSOR_LEFT = 0x4C
+    # Moves the graphics edit cursor left one column.
+
+    GRAPHICS_CURSOR_RIGHT = 0x52
+    # Moves the graphics edit cursor right one column.
+
+    PIXEL_OFF = 0x30
+    # Turns the current pixel off.
+
+    PIXEL_ON = 0x31
+    # Turns the current pixel on.
+
+    ### MISC ###
+
+    END_OF_MESSAGE = 0x05
+    # End-of-message marker.
+    # Not used in continuous Pianocorder data.
+
+    INSERT_CUSTOM_MESSAGE = 0x03
+    # Inserts a factory-programmed customization message into the text.
+
+    ENABLE_CASSETTE_OUTPUT_MODE = 0x11
+    # Enables cassette output mode for dumping programs in memory to cassette tape.
+
+
 class pianocorder_frame(Structure):
     _fields_ = [
         # bit number 0, byte 0
@@ -32,8 +146,8 @@ class pianocorder_frame(Structure):
         ("none_1", c_byte, 1),
         ("bass_intensity", c_byte, 5),
         # byte 1
+        ("superscan", c_byte, 8),  # for display extension HW
         # first playable, lowest note: c# (5th note from the left start)
-        ("none_2", c_byte, 8),
         # byte 2
         ("note_5", c_byte, 1),
         ("note_6", c_byte, 1),
@@ -80,7 +194,7 @@ class pianocorder_frame(Structure):
         ("note_43", c_byte, 1),
         ("note_44", c_byte, 1),
         # byte 7
-        ("none_3", c_byte, 8),
+        ("none_2", c_byte, 8),
         # expression control:
         #   00 -> note 44 bass, note 45/46 treble
         #   10 -> note 44..46 treble
@@ -88,7 +202,7 @@ class pianocorder_frame(Structure):
         #   11 -> not used
         # byte 8
         ("control", c_byte, 2),
-        ("none_4", c_byte, 1),
+        ("none_3", c_byte, 1),
         ("treble_intensity", c_byte, 5),
         # byte 9
         ("note_45", c_byte, 1),
@@ -136,7 +250,8 @@ class pianocorder_frame(Structure):
         ("note_83", c_byte, 1),
         ("note_84", c_byte, 1),  # highest possible note
         # byte 14
-        ("none_5", c_byte, 8),
+        # Not really documented, high nibble F, low nibble song number?
+        ("song_counter", c_byte, 8),
         # byte 15
         ("sync", c_byte, 8),
         # bit number 127
