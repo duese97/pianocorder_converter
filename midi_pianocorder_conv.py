@@ -15,6 +15,9 @@ class midi_converter:
     # MIDI note #21 equals piano key 1 (A0), #22 is key 2 (A#) and so on
     PIANO_KEY_OFFSET = 20
 
+    # Blank frames to allow HW to sync
+    NUM_LEADER_FRAMES = 20
+
     def __init__(self, midi_path_str: str, target_channel: int = 0):
         self.midifile = MidiFile(midi_path_str)
         self.target_channel = target_channel
@@ -89,7 +92,10 @@ class midi_converter:
     def _build_frames(self):
         frame_boundary = self.note_states[0].abs_time + FRAME_PERIOD_S
 
-        self.frames: list[pianocorder_frame] = []
+        # Add some blank frames, so pianocorder HW can sync
+        self.frames: list[pianocorder_frame] = [
+            pianocorder_frame()
+        ] * self.NUM_LEADER_FRAMES
 
         new_frame = pianocorder_frame()
 
