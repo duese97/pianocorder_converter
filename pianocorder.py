@@ -24,6 +24,7 @@ class manchester_state(Enum):
     HIGH = 0b11
 
 
+# see also https://www.pianocorder.info/pdf/mark_fontana_thesis.pdf
 class SuperScanCommand(Enum):
     ### GENERAL ###
     NO_OPERATION = 0x00
